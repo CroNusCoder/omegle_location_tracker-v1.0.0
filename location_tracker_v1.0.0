@@ -1,0 +1,61 @@
+from logging import exception
+import sys
+from geolite2 import geolite2
+import socket, subprocess
+
+
+cmd = r"C:\\Program Files\\Wireshark\\tshark.exe -i Wi-Fi"
+list_visit = []
+
+process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+my_ip = socket.gethostbyname(socket.gethostname())
+reader = geolite2.reader()
+running = True
+item = 3
+while running:
+    def get_ip_location(ip):
+        location = reader.get(ip)
+        try:
+            country = location["country"]["names"]["en"]
+        except:
+            country = "Unknown"
+                
+        try:
+            subdivision = location["subdivision"]["0"]["name"]["en"]
+        except:
+            subdivision = "Unknown"
+            
+        try:
+            city = location["city"]["names"]["en"]
+        except:
+            city = "Unknown"
+        try:
+            postal = location["postal"]["code"]
+        except:
+            postal = "unknown"
+        
+        return country, subdivision, city, postal
+    for line in iter(process.stdout.readline, b""):
+        line_str = str(line)
+        columns = line_str.split(" ")
+        if len(columns) > 10:
+            while '' in columns:
+                columns.remove('')
+            src_ip = columns[item]
+            try:
+                country, sub, city, postal = get_ip_location(src_ip)
+                if (country, sub, city, postal) in list_visit:
+                    pass
+                else:
+                    list_visit.append((country, sub, city, postal))
+                    print(country + ", " + sub, ", " + city, ", " + postal)
+
+            except:
+                if item > 1 :
+                    item -= 1
+                else:
+                    item = 4
+
+
+
+
